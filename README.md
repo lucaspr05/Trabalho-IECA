@@ -1,1 +1,95 @@
 # Trabalho-IECA
+
+#include <Arduino.h>
+/******************************************************************************/ 
+/*          Projeto: Protótipo Sensor para Estacionamento em Garagem          */
+/*                     PontoCanal - Ponto Makers                              */
+/******************************************************************************/
+
+// Configuração de Distancia Mínima em centímetros
+const int distancia_carro = 10;
+
+// Configurações de Portas do Arduino
+const int TRIG = 3;
+const int ECHO = 2;
+
+// Demais componentes
+const int ledGreen = 7;
+const int ledRed = 8;
+const int buzzer = 9;
+const int botao = 4; //
+
+// Variáveis para funcionamento do Buzzer
+float seno;
+int frequencia;
+
+void setup() {
+  Serial.begin(9600);
+
+  // Configurações do Sensor
+  pinMode(TRIG, OUTPUT);
+  pinMode(ECHO, INPUT);
+
+  // Configurações dos LEDs
+  pinMode(ledGreen, OUTPUT);
+  pinMode(ledRed, OUTPUT);
+
+  // Configuração do Buzzer
+  pinMode(buzzer, OUTPUT);
+
+  // Configuração do Botão
+  pinMode(botao, INPUT_PULLUP); // usa o resistor pull-up interno
+}
+
+// Função para medir a distância
+long medirDistancia(int pinoTrig, int pinoEcho) {
+  digitalWrite(pinoTrig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(pinoTrig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(pinoTrig, LOW);
+
+  return pulseIn(pinoEcho, HIGH) / 58;
+}
+
+// Função para execução do Alarme Sonoro
+void tocarBuzzer() {
+  for (int x = 0; x < 180; x++) {
+    seno = sin(x * 3.1416 / 180);
+    frequencia = 2000 + int(seno * 1000);
+    tone(buzzer, frequencia);
+    delay(2);
+  }
+}
+
+void loop() {
+  // Lê o estado do botão (LOW = pressionado)
+  bool sistemaAtivo = digitalRead(botao) == LOW;
+
+  if (sistemaAtivo) {
+    long distancia = medirDistancia(TRIG, ECHO);
+
+    if (distancia <= distancia_carro) {
+      Serial.print("Atenção: ");
+      digitalWrite(ledGreen, LOW);
+      digitalWrite(ledRed, HIGH);
+      //tocarBuzzer();
+    } else {
+      Serial.print("Livre: ");
+      digitalWrite(ledGreen, HIGH);
+      digitalWrite(ledRed, LOW);
+      noTone(buzzer);
+    }
+
+    Serial.print(distancia);
+    Serial.println(" cm");
+  } else {
+    // Sistema desligado: desliga tudo
+    digitalWrite(ledGreen, LOW);
+    digitalWrite(ledRed, LOW);
+    noTone(buzzer);
+    Serial.println("Sistema desligado");
+  }
+
+  delay(100);
+}
